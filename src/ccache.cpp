@@ -31,6 +31,7 @@
 #include "MiniTrace.hpp"
 #include "Result.hpp"
 #include "ResultRetriever.hpp"
+#include "ShowIncludesParser.hpp"
 #include "SignalHandler.hpp"
 #include "TemporaryFile.hpp"
 #include "UmaskScope.hpp"
@@ -699,6 +700,36 @@ struct DoExecuteResult
   std::string stderr_data;
 };
 
+// Extract the used includes from -showIncludes output in stdout. Note that we
+// cannot distinguish system headers from other includes here.
+static std::optional<Digest>
+result_key_from_includes(Context& ctx,
+                         Hash& hash,
+                         const std::string& stdout_data)
+{
+  for (std::string_view token : ShowIncludesParser::tokenize(
+         stdout_data, ctx.config.msvc_dep_prefix())) {
+    const std::string path = Util::make_relative_path(ctx, token);
+    remember_include_file(ctx, path, hash, false, &hash);
+  }
+
+  // Explicitly check the .pch file as it is not mentioned in the
+  // includes output.
+  if (!ctx.args_info.included_pch_file.empty()) {
+    std::string pch_path =
+      Util::make_relative_path(ctx, ctx.args_info.included_pch_file);
+    hash.hash(pch_path);
+    remember_include_file(ctx, pch_path, hash, false, nullptr);
+  }
+
+  bool debug_included = getenv("CCACHE_DEBUG_INCLUDED");
+  if (debug_included) {
+    print_included_files(ctx, stdout);
+  }
+
+  return hash.digest();
+}
+
 // Execute the compiler/preprocessor, with logic to retry without requesting
 // colored diagnostics messages if that fails.
 static nonstd::expected<DoExecuteResult, Failure>
@@ -1062,7 +1093,14 @@ to_cache(Context& ctx,
 
   if (ctx.config.depend_mode()) {
     ASSERT(depend_mode_hash);
-    result_key = result_key_from_depfile(ctx, *depend_mode_hash);
+    if (ctx.args_info.generating_dependencies) {
+      result_key = result_key_from_depfile(ctx, *depend_mode_hash);
+    } else if (ctx.args_info.generating_includes) {
+      result_key =
+        result_key_from_includes(ctx, *depend_mode_hash, result->stdout_data);
+    } else {
+      ASSERT(false);
+    }
     if (!result_key) {
       return nonstd::make_unexpected(Statistic::internal_error);
     }
@@ -2224,12 +2262,14 @@ do_cache_compilation(Context& ctx, const char* const* argv)
     ctx.config.set_run_second_cpp(true);
   }
 
-  if (ctx.config.depend_mode()
-      && (!ctx.args_info.generating_dependencies
-          || ctx.args_info.output_dep == "/dev/null"
-          || !ctx.config.run_second_cpp())) {
-    LOG_RAW("Disabling depend mode");
-    ctx.config.set_depend_mode(false);
+  if (ctx.config.depend_mode()) {
+    const bool deps = ctx.args_info.generating_dependencies
+                      && ctx.args_info.output_dep != "/dev/null";
+    const bool includes = ctx.args_info.generating_includes;
+    if (!ctx.config.run_second_cpp() || (!deps && !includes)) {
+      LOG_RAW("Disabling depend mode");
+      ctx.config.set_depend_mode(false);
+    }
   }
 
   if (ctx.storage.has_secondary_storage()) {
