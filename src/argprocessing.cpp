@@ -1122,7 +1122,19 @@ process_args(Context& ctx)
   }
 
   // Determine output object file.
-  const bool implicit_output_obj = args_info.output_obj.empty();
+  bool implicit_output_obj = args_info.output_obj.empty();
+  if (!implicit_output_obj && ctx.config.is_compiler_group_msvc()) {
+    if (*args_info.output_obj.rbegin() != '\\') {
+      implicit_output_obj = true;
+    } else {
+      auto st = Stat::stat(args_info.output_obj);
+      if (st && st.is_directory()) {
+        args_info.output_obj.append("\\");
+        implicit_output_obj = true;
+      }
+    }
+  }
+
   if (implicit_output_obj && !args_info.input_file.empty()) {
     string_view extension;
     if (state.found_S_opt) {
@@ -1132,8 +1144,9 @@ process_args(Context& ctx)
     } else {
       extension = ".obj";
     }
-    args_info.output_obj =
-      Util::change_extension(Util::base_name(args_info.input_file), extension);
+    args_info.output_obj = args_info.output_obj
+                           + Util::change_extension(
+                             Util::base_name(args_info.input_file), extension);
   }
 
   // On argument processing error, return now since we have determined
