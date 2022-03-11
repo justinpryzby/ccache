@@ -72,9 +72,11 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   while (true) {
     switch (*pos) {
     case '\\':
-      if (ignore_backslash && false) {
+      if (ignore_backslash && pos[1] != quoting) {
+        /* windows uses backslash as a pathname separator, but also to escape quotes within quotes */
         break;
       }
+
       pos++;
       if (*pos == '\0') {
         continue;
