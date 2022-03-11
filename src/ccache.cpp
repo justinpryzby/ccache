@@ -1919,6 +1919,8 @@ find_compiler(Context& ctx,
       CCACHE_NAME);
   }
 
+  //if (ctx.config.compiler().empty())
+  LOG("Compiler at pos {}: {}", compiler_pos, ctx.orig_args.to_string());
   ctx.orig_args.pop_front(compiler_pos);
   ctx.orig_args[0] = resolved_compiler;
 }
