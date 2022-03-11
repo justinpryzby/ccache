@@ -1919,10 +1919,14 @@ find_compiler(Context& ctx,
       CCACHE_NAME);
   }
 
-  //if (ctx.config.compiler().empty())
   LOG("Compiler at pos {}: {}", compiler_pos, ctx.orig_args.to_string());
-  ctx.orig_args.pop_front(compiler_pos);
-  ctx.orig_args[0] = resolved_compiler;
+  LOG("0 was: {}", ctx.orig_args[0]);
+  if (ctx.config.compiler().empty() || true) {
+    ctx.orig_args.pop_front(compiler_pos);
+    ctx.orig_args[0] = resolved_compiler;
+  } else {
+    ctx.orig_args[0] = ctx.config.compiler();
+  }
 }
 
 // Initialize ccache. Must be called once before anything else is run.
