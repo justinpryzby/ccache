@@ -298,6 +298,7 @@ process_arg(const Context& ctx,
     return Statistic::called_for_preprocessing;
   }
 
+  // LOG("Processing arg2: {}", args[i]);
   // Handle "@file" argument.
   if (util::starts_with(args[i], "@") || util::starts_with(args[i], "-@")) {
     const char* argpath = args[i].c_str() + 1;
@@ -305,6 +306,7 @@ process_arg(const Context& ctx,
     if (argpath[-1] == '-') {
       ++argpath;
     }
+    LOG("Reading arg file {}", argpath);
     auto file_args =
       Args::from_atfile(argpath, ctx.config.is_compiler_group_msvc());
     if (!file_args) {
@@ -312,6 +314,7 @@ process_arg(const Context& ctx,
       return Statistic::bad_compiler_arguments;
     }
 
+    LOG("Read arg file {}: {}", (*file_args).size(), (*file_args).to_string());
     args.replace(i, *file_args);
     i--;
     return nullopt;
@@ -452,6 +455,7 @@ process_arg(const Context& ctx,
   if (util::starts_with(args[i], "-Fo") && config.is_compiler_group_msvc()) {
     args_info.output_obj =
       Util::make_relative_path(ctx, string_view(args[i]).substr(3));
+    // if isdir(): append filenae
     return nullopt;
   }
 
@@ -1095,7 +1099,9 @@ process_args(Context& ctx)
   state.common_args.push_back(args[0]); // Compiler
 
   optional<Statistic> argument_error;
+  LOG("Processing args: {}", args.to_string());
   for (size_t i = 1; i < args.size(); i++) {
+    // LOG("Processing arg: {}", args[i]);
     const auto error =
       process_arg(ctx, ctx.args_info, ctx.config, args, i, state);
     if (error && !argument_error) {

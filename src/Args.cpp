@@ -19,6 +19,7 @@
 #include "Args.hpp"
 
 #include "Util.hpp"
+#include "Logging.hpp"
 
 #include <core/exceptions.hpp>
 #include <util/string.hpp>
@@ -64,6 +65,8 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   std::string argbuf;
   argbuf.resize(argtext.length() + 1);
   auto argpos = argbuf.begin();
+
+  LOG("Read file: {}", argtext.c_str());
 
   // Used to track quoting state; if \0 we are not inside quotes. Otherwise
   // stores the quoting character that started it for matching the end quote.
