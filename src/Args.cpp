@@ -75,9 +75,19 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   while (true) {
     switch (*pos) {
     case '\\':
-      if (ignore_backslash) {
+      if (ignore_backslash && pos[1] != quoting) {
+        // windows uses backslash as a pathname separator, and also to escape quotes within quotes
+
+        // Slurp in any duplicate backslashes, which otherwise might cause a \" to be interpretted as an inner quote
+        // "foo\bar\baz\\" should be foo\bar\baz\ not foo\bar\baz\"
+        while (pos[1] == '\\')
+          pos++;
+
+        // Record the backslash itself
         break;
       }
+
+      // Record the character following the backslash
       pos++;
       if (*pos == '\0') {
         continue;
