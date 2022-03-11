@@ -72,7 +72,7 @@ Args::from_atfile(const std::string& filename, bool ignore_backslash)
   while (true) {
     switch (*pos) {
     case '\\':
-      if (ignore_backslash) {
+      if (ignore_backslash && false) {
         break;
       }
       pos++;
