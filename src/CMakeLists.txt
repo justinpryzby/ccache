@@ -71,9 +71,6 @@ if(REDIS_STORAGE_BACKEND)
   )
 endif()
 
-add_executable(test-lockfile test_lockfile.cpp)
-target_link_libraries(test-lockfile PRIVATE ccache_framework)
-
 add_subdirectory(compression)
 add_subdirectory(core)
 add_subdirectory(storage)
