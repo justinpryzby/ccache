@@ -21,6 +21,7 @@
 #include "Context.hpp"
 #include "Depfile.hpp"
 #include "Logging.hpp"
+#include "ShowIncludesParser.hpp"
 
 #include <core/exceptions.hpp>
 #include <core/wincompat.hpp>
@@ -164,7 +165,10 @@ ResultRetriever::on_entry_end()
 {
   if (m_dest_file_type == FileType::stdout_output) {
     LOG("Writing to file descriptor {}", STDOUT_FILENO);
-    Util::send_to_fd(m_ctx, m_dest_data, STDOUT_FILENO);
+    Util::send_to_fd(
+      m_ctx,
+      ShowIncludesParser::strip_includes(m_ctx, std::move(m_dest_data)),
+      STDOUT_FILENO);
   } else if (m_dest_file_type == FileType::stderr_output) {
     LOG("Writing to file descriptor {}", STDERR_FILENO);
     Util::send_to_fd(m_ctx, m_dest_data, STDERR_FILENO);

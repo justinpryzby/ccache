@@ -21,9 +21,13 @@
 #include <string_view>
 #include <vector>
 
+class Context;
+
 namespace ShowIncludesParser {
 
 std::vector<std::string_view> tokenize(std::string_view file_content,
                                        std::string_view prefix);
+
+std::string strip_includes(const Context& ctx, std::string&& stdout_data);
 
 } // namespace ShowIncludesParser
