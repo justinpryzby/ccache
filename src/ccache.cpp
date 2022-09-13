@@ -1011,6 +1011,28 @@ rewrite_stdout_from_compiler(const Context& ctx, std::string&& stdout_data)
   }
 }
 
+static std::string
+strip_includes(const Context& ctx, std::string&& stdout_data)
+{
+  using util::Tokenizer;
+  using Mode = Tokenizer::Mode;
+  using IncludeDelimiter = Tokenizer::IncludeDelimiter;
+
+  if (stdout_data.empty() || !ctx.auto_depend_mode
+      || ctx.config.compiler_type() != CompilerType::msvc) {
+    return std::move(stdout_data);
+  }
+
+  std::string new_stdout_text;
+  for (const auto line : Tokenizer(
+         stdout_data, "\n", Mode::include_empty, IncludeDelimiter::yes)) {
+    if (!util::starts_with(line, "Note: including file:")) {
+      new_stdout_text.append(line.data(), line.length());
+    }
+  }
+  return new_stdout_text;
+}
+
 // Run the real compiler and put the result in cache. Returns the result key.
 static nonstd::expected<Digest, Failure>
 to_cache(Context& ctx,
@@ -1159,7 +1181,8 @@ to_cache(Context& ctx,
   // Everything OK.
   Util::send_to_fd(ctx, result->stderr_data, STDERR_FILENO);
   // Send stdout after stderr, it makes the output clearer with MSVC.
-  Util::send_to_fd(ctx, result->stdout_data, STDOUT_FILENO);
+  Util::send_to_fd(
+    ctx, strip_includes(ctx, std::move(result->stdout_data)), STDOUT_FILENO);
 
   return *result_key;
 }
